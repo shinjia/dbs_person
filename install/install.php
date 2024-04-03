@@ -10,9 +10,9 @@ $a_valid['VIEW_DEFINE']     = true;  // 查看定義
 $a_valid['ADD_DATA']        = true;  // 新增預設資料
 $a_valid['LIST_DATA']       = true;  // 列出資料
 $a_valid['EXPORT']          = true;  // 資料匯出
-$a_valid['IMPORT_UPLOAD']   = true;  // 資料匯入
-$a_valid['IMPORT_SAVE']     = true;  // 資料匯入
-$a_valid['IMPORT_EXEC']     = true;  // 資料匯入
+$a_valid['IMPORT']          = true;  // 資料匯入
+$a_valid['IMPORT_SAVE']     = true;  // 資料匯入之上傳 (配含IMPORT)
+$a_valid['IMPORT_EXEC']     = true;  // 資料匯入之執行 (配含IMPORT)
 $a_valid['SQL_QUERY']       = true;  // 執行自定SQL
 
 
@@ -46,6 +46,7 @@ $file_temp = '__temp__.csv';
 
 
 // 指定匯入匯出的資料表及對應欄位名稱
+$is_title = true;  // 是否第一列要包含欄位名稱
 $table_import = 'person';
 $a_mapping = array(
 'usercode',
@@ -299,7 +300,9 @@ HEREDOC;
         header('Content-Type: text/csv; charset=utf-8');  
         header('Content-Disposition: attachment; filename=' . $file_csv);
         $output = fopen("php://output", "w"); 
-        // fputcsv($output, $ary);  
+        if($is_title) {
+            fputcsv($output, $ary);  // 匯出欄位名稱
+        }
         // 連接資料庫
         $pdo = db_open();
         $sqlstr = "SELECT * FROM " . $table_import;
@@ -321,7 +324,7 @@ HEREDOC;
     
     
 
-    case 'IMPORT_UPLOAD' :
+    case 'IMPORT' :
         $msg .= <<< HEREDOC
         <h2>匯入檔案上傳</h2>
         <p>選擇要匯入的 .csv 檔案 (請自行確認格式及內容的正確)</p>
@@ -399,7 +402,7 @@ $menu .= (!isset($a_valid['CREATE_TABLE']) || !$a_valid['CREATE_TABLE']) ? '' : 
 $menu .= (!isset($a_valid['DROP_TABLE']) || !$a_valid['DROP_TABLE']) ? '' : '| <a href="?do=DROP_TABLE" onClick="return confirm(\'確定要刪除嗎？\');">刪除資料表</a> ';
 $menu .= '| --- ';
 $menu .= (!isset($a_valid['EXPORT']) || !$a_valid['EXPORT']) ? '' : '| <a href="?do=EXPORT">匯出</a> ';
-$menu .= (!isset($a_valid['IMPORT_UPLOAD']) || !$a_valid['IMPORT_UPLOAD']) ? '' : '| <a href="?do=IMPORT_UPLOAD">匯入</a> ';
+$menu .= (!isset($a_valid['IMPORT']) || !$a_valid['IMPORT']) ? '' : '| <a href="?do=IMPORT">匯入</a> ';
 $menu .= '| --- ';
 $menu .= (!isset($a_valid['ADD_DATA']) || !$a_valid['ADD_DATA']) ? '' : '| <a href="?do=ADD_DATA">新增預設記錄</a> ';
 $menu .= (!isset($a_valid['LIST_DATA']) || !$a_valid['LIST_DATA']) ? '' : '| <a href="?do=LIST_DATA">查看記錄內容</a> ';

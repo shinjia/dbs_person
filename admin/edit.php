@@ -41,7 +41,7 @@ try {
         $lnk_list = 'list_page.php?uid=' . $uid . '&page=' . $page . '&nump=' . $nump;
 
         $data = <<< HEREDOC
-        <button onclick="location.href='{$lnk_list}';">返回列表</button>
+        <button onclick="location.href='{$lnk_list}';" class="btn btn-primary">返回列表</button>
         <form action="edit_save.php" method="post">
         <table class="table">
             <tr><th>代碼</th><td><input type="text" name="usercode" value="{$usercode}"></td></tr>
