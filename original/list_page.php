@@ -83,8 +83,9 @@ try {
         $lnk_delete = 'delete.php?uid=' . $uid . '&page=' . $page . '&nump=' . $nump;
 
         $data .= <<< HEREDOC
-        <tr {$str_highlight}>
-            <th class="table-secondary">{$cnt}</th>
+            <tr {$str_highlight}>
+            <th>{$cnt}</th>
+            <td>{$uid}</td>
             <td>{$usercode}</td>
             <td>{$username}</td>
             <td>{$address}</td>
@@ -92,11 +93,9 @@ try {
             <td>{$height}</td>
             <td>{$weight}</td>
             <td>{$remark}</td>
-            <td class="table-secondary">
-                <a href="{$lnk_display}" class="btn btn-info btn-sm">詳細</a>
-                <a href="{$lnk_edit}" class="btn btn-warning btn-sm">修改</a>
-                <a href="{$lnk_delete}" class="btn btn-danger btn-sm" onClick="return confirm('確定要刪除嗎？');">刪除</a>
-            </td>
+            <td><a href="{$lnk_display}">詳細</a></td>
+            <td><a href="{$lnk_edit}">修改</a></td>
+            <td><a href="{$lnk_delete}" onClick="return confirm('確定要刪除嗎？');">刪除</a></td>
         </tr>
 HEREDOC;
     }
@@ -110,9 +109,10 @@ HEREDOC;
     $ihc_content = <<< HEREDOC
     <h3>共有 $total_rec 筆記錄</h2>
     {$ihc_navigator}
-    <table class="table table-hover">
-        <tr class="table-secondary">
+    <table>
+        <tr>
             <th>順序</th>
+            <th>uid</th>
             <th>代碼</th>
             <th>姓名</th>
             <th>地址</th>
@@ -120,14 +120,14 @@ HEREDOC;
             <th>身高</th>
             <th>體重</th>
             <th>備註</th>
-            <th><a href="{$lnk_add}" class="btn btn-success btn-sm">新增記錄</a></th>
+            <th colspan="3" align="center"><a href="{$lnk_add}">新增記錄</a></th>
         </tr>
     {$data}
     </table>
 HEREDOC;
 
     // 找不到資料時
-    if($total_rec==0) { $ihc_content = '<p class="center">無資料</p>';}
+    if($total_rec==0) { $ihc_content = '<p>無資料</p>';}
 }
 catch(PDOException $e) {
     // db_error(ERROR_QUERY, $e->getMessage());

@@ -7,5 +7,6 @@
 </head>
 <body>
     <h1>前端網頁</h1>
+    <p><a href="list_page.php">list_page</a></p>
 </body>
 </html>

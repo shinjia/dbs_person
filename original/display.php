@@ -37,7 +37,7 @@ try {
         $remark   = html_encode($row['remark']);
 
         $data = <<< HEREDOC
-        <table class="table">
+        <table>
             <tr><th>代碼</th><td>{$usercode}</td></tr>
             <tr><th>姓名</th><td>{$username}</td></tr>
             <tr><th>地址</th><td>{$address}</td></tr>
@@ -56,15 +56,15 @@ HEREDOC;
         // 網頁內容
         $ihc_content = <<< HEREDOC
         <p>
-            <button onclick="location.href='{$lnk_prev}';" class="btn btn-info">返回列表</button>
-            <button onclick="location.href='{$lnk_edit}';" class="btn btn-warning">修改</button>
-            <button onclick="if(confirm('確定要刪除嗎？')) {location.href='{$lnk_delete}';}" class="btn btn-danger">刪除</button>
+            <button onclick="location.href='{$lnk_prev}';">返回列表</button>
+            <button onclick="location.href='{$lnk_edit}';">修改</button>
+            <button onclick="if(confirm('確定要刪除嗎？')) {location.href='{$lnk_delete}';}">刪除</button>
         </p>
         {$data}
 HEREDOC;
     }
     else {
-        $ihc_data = '<p class="center">查不到相關記錄！</p>';
+        $ihc_data = '<p>查不到相關記錄！</p>';
     }
 }
 catch(PDOException $e) {

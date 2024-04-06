@@ -9,9 +9,8 @@ function error_message($type='', $ext='') {
 
     $msg = isset($a_errmsg[$type]) ? $a_errmsg[$type] : $a_errmsg['default'];
 
-    if($type=='page')
-    {
-        $msg = '檔案資料『" . $ext . "』不存在';
+    if($type=='page') {
+        $msg = '檔案資料『' . $ext . '』不存在';
     }
     
     $ret_str  = '<h2>錯誤警告</h2>';
@@ -58,23 +57,22 @@ function pagination($total_page, $page, $nump=10) {
     $ihc_navigator = '';
     // $ihc_navigator .= '<table border="0" align="center"><tr><td>' . $lnk_pagelist . '</td></tr></table>';
     $ihc_navigator .= <<< HEREDOC
-    <table border="0" align="center">
-        <tr>
-            <td>頁數：{$page} / {$total_page}</td>
-            <td>&nbsp;&nbsp;&nbsp;</td>
-            <td>
-                <a href="{$lnk_pagehead}">第一頁</a> 
-                <a href="{$lnk_pageprev}">上一頁</a> 
-                <a href="{$lnk_pagenext}">下一頁</a> 
-                <a href="{$lnk_pagelast}">最末頁</a>
-            </td>
-            <td>&nbsp;&nbsp;&nbsp;</td>
-            <td>移至頁數</td>
-            <td>{$lnk_pagegoto}</td>
-            <td>&nbsp;&nbsp;&nbsp;</td>
-            <td nowrap>{$set_nump}</td>
-        </tr>
-    </table>
+    <nav aria-label="Page navigation example">
+        <ul class="pagination">
+            <li class="page-item"><a class="page-link" href="{$lnk_pagehead}">第一頁</a></li>
+            <li class="page-item"><a class="page-link" href="{$lnk_pageprev}">上一頁</a></li>
+            <li class="page-item"><a class="page-link" href="{$lnk_pagenext}">下一頁</a></li>
+            <li class="page-item"><a class="page-link" href="{$lnk_pagelast}">最末頁</a></li>
+            <li>&nbsp;&nbsp;&nbsp;&nbsp;</li>
+            <li>頁數：{$page} / {$total_page}</li>
+            <li>&nbsp;&nbsp;&nbsp;&nbsp;</li>
+            <li>移至頁數</li>
+            <li>{$lnk_pagegoto}</li>
+            <li>&nbsp;&nbsp;&nbsp;&nbsp;</li>
+            <li nowrap>{$set_nump}</li>
+
+        </ul>
+    </nav>
 HEREDOC;
     // ------ 分頁處理結束 -------------------------------------
 
@@ -127,23 +125,22 @@ function pagination_ext($total_page, $page, $nump=10, $a_ext=array()) {
     $ihc_navigator = '';
     // $ihc_navigator .= '<table border="0" align="center"><tr><td>' . $lnk_pagelist . '</td></tr></table>';
     $ihc_navigator .= <<< HEREDOC
-    <table border="0" align="center">
-        <tr>
-            <td>頁數：{$page} / {$total_page}</td>
-            <td>&nbsp;&nbsp;&nbsp;</td>
-            <td>
-                <a href="{$lnk_pagehead}">第一頁</a> 
-                <a href="{$lnk_pageprev}">上一頁</a> 
-                <a href="{$lnk_pagenext}">下一頁</a> 
-                <a href="{$lnk_pagelast}">最末頁</a>
-            </td>
-            <td>&nbsp;&nbsp;&nbsp;</td>
-            <td>移至頁數</td>
-            <td>{$lnk_pagegoto}</td>
-            <td>&nbsp;&nbsp;&nbsp;</td>
-            <td nowrap>{$set_nump}</td>
-        </tr>
-    </table>
+    <nav aria-label="Page navigation example">
+        <ul class="pagination">
+            <li class="page-item"><a class="page-link" href="{$lnk_pagehead}">第一頁</a></li>
+            <li class="page-item"><a class="page-link" href="{$lnk_pageprev}">上一頁</a></li>
+            <li class="page-item"><a class="page-link" href="{$lnk_pagenext}">下一頁</a></li>
+            <li class="page-item"><a class="page-link" href="{$lnk_pagelast}">最末頁</a></li>
+            <li>&nbsp;&nbsp;&nbsp;&nbsp;</li>
+            <li>頁數：{$page} / {$total_page}</li>
+            <li>&nbsp;&nbsp;&nbsp;&nbsp;</li>
+            <li>移至頁數</li>
+            <li>{$lnk_pagegoto}</li>
+            <li>&nbsp;&nbsp;&nbsp;&nbsp;</li>
+            <li nowrap>{$set_nump}</li>
+
+        </ul>
+    </nav>
 HEREDOC;
     // ------ 分頁處理結束 -------------------------------------
 

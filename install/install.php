@@ -3,13 +3,14 @@ include '../common/config.php';
 
 // 設定此程式可執行之功能 (將不允許執行的功能設為 false，或是加上註解)
 $a_valid['HOME']            = true;  // 首頁
-// $a_valid['CREATE_DATABASE'] = true;  // 新增資料庫
+// $a_valid['CREATE_DATABASE'] = false;  // 新增資料庫
 $a_valid['CREATE_TABLE']    = true;  // 新增資料表
 $a_valid['DROP_TABLE']      = true;  // 刪除資料表
 $a_valid['VIEW_DEFINE']     = true;  // 查看定義
 $a_valid['ADD_DATA']        = true;  // 新增預設資料
 $a_valid['LIST_DATA']       = true;  // 列出資料
-$a_valid['EXPORT']          = true;  // 資料匯出
+$a_valid['EXPORT_TBL']      = true;  // 匯出 (單一資料表)
+$a_valid['EXPORT_SQL']      = true;  // 匯出 (指定的SQL)
 $a_valid['IMPORT']          = true;  // 資料匯入
 $a_valid['IMPORT_SAVE']     = true;  // 資料匯入之上傳 (配含IMPORT)
 $a_valid['IMPORT_EXEC']     = true;  // 資料匯入之執行 (配含IMPORT)
@@ -57,6 +58,10 @@ $a_mapping = array(
 'weight',
 'remark' );
 
+// 指定匯出的 SQL
+$is_title_sql = true;  // 是否第一列要包含欄位名稱
+$sql_export = 'SELECT * FROM person';
+
 
 // ************ 以下為此程式之功能執行，毋需修改 ************
 
@@ -85,7 +90,7 @@ function __fgetcsv(&$handle, $length = null, $d = ",", $e = '"') {
 }
 
 
-function build_table_string($sth) {
+function build_fields_table($sth) {
     $ret = '';
 
     // 以各欄位名稱當表格標題
@@ -116,6 +121,36 @@ function build_table_string($sth) {
 }
 
 
+function build_fields_title($sth) {
+    $ret = '';
+
+    // 以各欄位名稱當表格標題
+    $fields = array(); 
+    for ($i=0; $i<$sth->columnCount(); $i++) {
+        $col = $sth->getColumnMeta($i);
+        $fields[] = $col['name'];
+    }
+
+    $ret .= '<table border="1" cellpadding="2" cellspaceing="0">';
+    $ret .= '<tr>';
+    foreach ($fields as $val) {
+        $ret .= '<th>' . $val . '</th>';
+    }
+    $ret .= '</tr>';
+
+    // 列出各筆記錄資料
+    while($row=$sth->fetch(PDO::FETCH_ASSOC)) {
+        $ret .= '<tr>';
+        foreach($row as $one) {
+            $ret .= '<td>' . $one . '</td>';
+        }
+        $ret .= '</tr>';
+    }
+    $ret .= '</table>';
+
+    return $ret;
+}
+
 
 // ***** 主程式 *****
 $do = $_GET['do'] ?? '';
@@ -131,7 +166,7 @@ if(!isset($a_valid[$do]) || !$a_valid[$do]) {
     $msg .= '******無法執行此功能！******';
 }
 else {
-    switch($do) {
+switch($do) {
     case 'ADD_DATA' :
         $pdo = db_open();
         
@@ -163,7 +198,7 @@ else {
                 $msg .= print_r($pdo->errorInfo(),TRUE);
             }
             else {
-                $msg .= build_table_string($sth);
+                $msg .= build_fields_table($sth);
             }
         }
         break;
@@ -266,7 +301,7 @@ HEREDOC;
             else {
                 // SELECT 語法結果
                 $msg .= '<h3>rowCount: ' . $sth->rowCount() . '</h3>';
-                $msg .= build_table_string($sth);
+                $msg .= build_fields_table($sth);
             }
         }
         break;
@@ -290,7 +325,38 @@ HEREDOC;
         break;
     
 
-    case 'EXPORT' :
+        
+    case 'EXPORT_SQL' :
+        // 依 SQL 匯出
+        // 開始匯出
+        header('Content-Type: text/csv; charset=utf-8');  
+        header('Content-Disposition: attachment; filename=' . $file_csv);
+        $output = fopen("php://output", "w"); 
+        if($is_title_sql) {
+            // fputcsv($output, $ary);  // 匯出欄位名稱
+        }
+        // 連接資料庫
+        $pdo = db_open();
+        $sqlstr = $sql_export;
+        $sth = $pdo->prepare($sqlstr);
+        if($sth->execute()) {
+            $total_rec = $sth->rowCount();
+            $data = '';
+            while($row = $sth->fetch(PDO::FETCH_ASSOC)) {
+                unset($row['uid']);  // remove uid field
+                fputcsv($output, $row);
+            }
+        }
+        else {
+            die('Error!');
+        }
+        fclose($output);
+        die();
+        break;
+    
+
+
+    case 'EXPORT_TBL' :
         // 資料表及匯入的各個欄位
         $ary = array();
         foreach($a_mapping as $k=>$value) {
@@ -336,6 +402,7 @@ HEREDOC;
         break;
         
 
+
     case 'IMPORT_SAVE' :        
         $a_file = $_FILES["file"];  // 上傳的檔案內容
         // 上傳檔案處理
@@ -345,6 +412,7 @@ HEREDOC;
         }
         header('Location: ?do=IMPORT_EXEC');
         break;
+
 
 
     case 'IMPORT_EXEC' :
@@ -358,16 +426,17 @@ HEREDOC;
 
         $pdo = db_open();
         $time1 = microtime(TRUE);
-        $cnt = 0;
+        $cnt_record = 0;
         // 讀入資料後逐筆新增
         if((@$handle = fopen($file_temp, "r")) !== FALSE) {
             $record_all = '';
-            $cnt = 0;
             while(($row = __fgetcsv($handle)) !== FALSE) {
-                $cnt++;
+                $cnt_record++;
+                $cnt = 0;
                 $record_one = '(';
-                foreach($a_mapping as $k=>$value) {
+                foreach($a_mapping as $value) {
                     $one = str_replace("'", "\'", $row[$cnt]);  // 處理單引號
+                    $cnt++;
                     $record_one .= "'" . $one . "',";
                 }
                 $record_one = rtrim($record_one, ',');  // 移除最後一個逗號
@@ -378,8 +447,9 @@ HEREDOC;
             fclose($handle);
             $record_all = rtrim($record_all, ',');  // 移除最後一個逗號
             $sqlstr .= $record_all;
+
             if($pdo->query($sqlstr)) {
-                $msg .= '已新增 ' . $cnt . ' 筆記錄';
+                $msg .= '已新增 ' . $cnt_record . ' 筆記錄';
             }
         }
         @unlink($file_temp);
@@ -387,11 +457,11 @@ HEREDOC;
         $spend = $time2 - $time1;
         $msg .= '<p>共花費時間：' . $spend . '</p>';
         break;
+} /* end of switch */
+} /* end of if..else */
 
-    }
-}
 
-
+// 顯示功能表列
 $menu  = '';
 $menu .= '| <a href="?do=HOME">安裝首頁</a> ';
 $menu .= (!isset($a_valid['VIEW_DEFINE']) || !$a_valid['VIEW_DEFINE']) ? '' : '| <a href="?do=VIEW_DEFINE">程式內SQL定義</a> ';
@@ -401,7 +471,8 @@ $menu .= '| --- ';
 $menu .= (!isset($a_valid['CREATE_TABLE']) || !$a_valid['CREATE_TABLE']) ? '' : '| <a href="?do=CREATE_TABLE">建立資料表</a> ';
 $menu .= (!isset($a_valid['DROP_TABLE']) || !$a_valid['DROP_TABLE']) ? '' : '| <a href="?do=DROP_TABLE" onClick="return confirm(\'確定要刪除嗎？\');">刪除資料表</a> ';
 $menu .= '| --- ';
-$menu .= (!isset($a_valid['EXPORT']) || !$a_valid['EXPORT']) ? '' : '| <a href="?do=EXPORT">匯出</a> ';
+$menu .= (!isset($a_valid['EXPORT_SQL']) || !$a_valid['EXPORT_SQL']) ? '' : '| <a href="?do=EXPORT_SQL">匯出(SQL)</a> ';
+$menu .= (!isset($a_valid['EXPORT_TBL']) || !$a_valid['EXPORT_TBL']) ? '' : '| <a href="?do=EXPORT_TBL">匯出(資料表)</a> ';
 $menu .= (!isset($a_valid['IMPORT']) || !$a_valid['IMPORT']) ? '' : '| <a href="?do=IMPORT">匯入</a> ';
 $menu .= '| --- ';
 $menu .= (!isset($a_valid['ADD_DATA']) || !$a_valid['ADD_DATA']) ? '' : '| <a href="?do=ADD_DATA">新增預設記錄</a> ';
