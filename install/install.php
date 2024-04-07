@@ -137,7 +137,6 @@ function build_fields_title($sth) {
 
 function do_add_data($a_record) {
     $pdo = db_open();
-        
     $_msg = '<h2>新增記錄</h2>';
     foreach($a_record as $key=>$sqlstr) {
         $sth = $pdo->query($sqlstr);
@@ -155,7 +154,7 @@ function do_add_data($a_record) {
 
 
 function do_list_data($a_table) {
-    $pdo = db_open();        
+    $pdo = db_open();
     $_msg = '<h2>記錄內容</h2>';
     foreach($a_table as $key=>$sqlstr) {
         $sqlstr = 'SELECT * FROM ' . $key;
@@ -175,11 +174,11 @@ function do_list_data($a_table) {
 
 function do_create_table($a_table) {
     $pdo = db_open();        
-    $_msg = '<h2>執行資料表建立</h2>';        
+    $_msg = '<h2>執行資料表建立</h2>';
     foreach($a_table as $key=>$sqlstr) {
         $_msg .= '<h3>資料表『' . $key . '』</h3>';
         try { 
-            $sth = $pdo->query($sqlstr);   
+            $sth = $pdo->query($sqlstr);
             if($sth===FALSE) {
                 $_msg .= '<p>建立失敗！</p>';
                 $_msg .= print_r($pdo->errorInfo(),TRUE);
@@ -187,7 +186,7 @@ function do_create_table($a_table) {
             else {
                 $_msg .= '<p>建立完成</p>';
             }
-        } catch(PDOException $e) {            
+        } catch(PDOException $e) {
             $_msg .= '<p>無法建立！</p>';
             $_msg .= $e->getMessage();
         }
@@ -197,13 +196,13 @@ function do_create_table($a_table) {
 
 
 function do_drop_table($a_table) {
-    $pdo = db_open();        
+    $pdo = db_open();
     // 執行SQL及處理結果
     $_msg = '<h2>執行資料表刪除</h2>';
     foreach($a_table as $key=>$sqlstr) {
         $sqlstr = 'DROP TABLE ' . $key;
         $_msg .= '<h3>資料表『' . $key . '』</h3>';
-        try { 
+        try {
             $sth = $pdo->exec($sqlstr);
             if($sth===FALSE) {
                 $_msg .= '<p>刪除失敗！</p>';
@@ -239,10 +238,8 @@ function do_create_database() {
     $_msg .= '<p>資料庫『' . DB_DATABASE . '』</p>';
     $_msg .= '<p>' . $sqlstr . '</p>';
     $_msg .= '<p>如要刪除 DROP DATABASE ' . DB_DATABASE . '</p>';
-    
     return $_msg;
 }
-
 
 
 function do_view_define($a_table, $a_record) {
@@ -259,12 +256,196 @@ function do_view_define($a_table, $a_record) {
     }
     $_msg .= '</div>';
     $_msg .= '</td></tr></table>';
+    return $_msg;
+}
+
+
+function do_export($table_import, $a_mapping, $file_csv, $is_title) {
+    // 資料表及匯入的各個欄位
+    $ary = array();
+    foreach($a_mapping as $k=>$value) {
+        $ary[] = $value;
+    }
+    // 開始匯出
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename=' . $file_csv);
+    $output = fopen("php://output", "w"); 
+    if($is_title) {
+        fputcsv($output, $ary);  // 匯出欄位名稱
+    }
+    // 連接資料庫
+    $pdo = db_open();
+    $sqlstr = "SELECT * FROM " . $table_import;
+    $sth = $pdo->prepare($sqlstr);
+    if($sth->execute()) {
+        $total_rec = $sth->rowCount();
+        $data = '';
+        while($row = $sth->fetch(PDO::FETCH_ASSOC)) {
+            unset($row['uid']);  // remove uid field
+            fputcsv($output, $row);
+        }
+    }
+    else {
+        die('Error!');
+    }
+    fclose($output);
+    die();
+}
+
+
+function do_import_input() {
+    $_msg = <<< HEREDOC
+    <h2>匯入檔案上傳</h2>
+    <p>選擇要匯入的 .csv 檔案 (請自行確認格式及內容的正確)</p>
+    <form name="form1" method="post" action="?do=IMPORT_SAVE" enctype="multipart/form-data">
+    檔案：<input type="file" name="file">
+    <input type="submit" value="上傳">
+    </form>
+HEREDOC;
+    return $_msg;
+}
+
+
+function do_import_save($file_temp) {
+    $a_file = $_FILES["file"];  // 上傳的檔案內容
+    // 上傳檔案處理
+    if($a_file["size"]>0) {
+        $save_filename = $file_temp;
+        move_uploaded_file($a_file["tmp_name"], $save_filename);
+    }
+    header('Location: ?do=IMPORT_EXEC');
+}
+
+
+function do_import_exec($table_import, $a_mapping, $file_temp) {
+    $msg = '';
+    // 資料表及匯入的各個欄位
+    $sqlstr = "INSERT INTO $table_import(";
+    foreach($a_mapping as $k=>$value) {
+        $sqlstr .= $value . ',';
+    }
+    $sqlstr = rtrim($sqlstr, ',');  // 移除最後一個逗號
+    $sqlstr .= ') VALUES ';
+
+    $pdo = db_open();
+    $time1 = microtime(TRUE);
+    $cnt_record = 0;
+    // 讀入資料後逐筆新增
+    if((@$handle = fopen($file_temp, "r")) !== FALSE) {
+        $record_all = '';
+        while(($row = __fgetcsv($handle)) !== FALSE) {
+            $cnt_record++;
+            $cnt = 0;
+            $record_one = '(';
+            foreach($a_mapping as $value) {
+                $one = str_replace("'", "\'", $row[$cnt]);  // 處理單引號
+                $cnt++;
+                $record_one .= "'" . $one . "',";
+            }
+            $record_one = rtrim($record_one, ',');  // 移除最後一個逗號
+            $record_one .= '),';
+
+            $record_all .= $record_one;
+        }
+        fclose($handle);
+        $record_all = rtrim($record_all, ',');  // 移除最後一個逗號
+        $sqlstr .= $record_all;
+
+        if($pdo->query($sqlstr)) {
+            $msg .= '已新增 ' . $cnt_record . ' 筆記錄';
+        }
+    }
+    @unlink($file_temp);
+    $time2 = microtime(TRUE);
+    $spend = $time2 - $time1;
+    $msg .= '<p>共花費時間：' . $spend . '</p>';
+    return $msg;
+}
+
+
+function do_sql_query($sql, $a_table, $is_sql_save, $is_fields_title, $file_csv) {    
+    $_msg = <<< HEREDOC
+    <h2>請輸入SQL指令</h2>
+    <form name="form1" method="post" action="?do=SQL_QUERY">
+    <textarea name="sql" rows="4" cols="80">{$sql}</textarea><br />
+    <input type="submit" value="送出查詢">
+    是否輸出到檔案 <input type="checkbox" name="sql_save" value="Y"> |
+    含表頭 <input type="checkbox" name="fields_title" value="Y">
+    </form>
+    <hr />
+HEREDOC;
+    if(empty($sql)) {
+        $_msg .= '<h2>SQL 範例</h2>' ;
+        $_msg .= '<p>';
+        $_msg .= 'SHOW TABLES<br>';
+        $_msg .= 'SHOW TABLE STATUS<br>';
+        $_msg .= '=======================<br>';
+        foreach($a_table as $key=>$sqlstr) {
+            $_msg .= 'DESC ' . $key . '<br>';
+            // $_msg .= '<p>SHOW COLUMNS FROM ' . $key . '</p>';
+            $_msg .= 'SELECT count(*) FROM ' . $key . '<br>';
+            $_msg .= 'SELECT * FROM ' . $key . '<br>';
+            $_msg .= '-----------------------------------<br>';
+        }
+        $_msg .= '</p>';
+
+    }
+    else {
+        try {
+            $pdo = db_open();
+            $sqlstr = $sql;
+            $sth = $pdo->query($sqlstr);
+            if($sth===FALSE) {
+                $_msg .= '<h3>執行結果失敗！</h3>';
+                $_msg .= print_r($pdo->errorInfo(),TRUE);
+            }
+            else {
+                // SELECT 語法結果
+                $_msg .= '<h3>rowCount: ' . $sth->rowCount() . '</h3>';
+                $_msg .= build_fields_table($sth);
+            }
+        }
+        catch (PDOException $e) {            
+            $_msg .= '<h3>執行結果失敗！</h3>';
+            $_msg .= $e->getMessage();
+        }
+    }
     
+    // 依 SQL 匯出
+    if($is_sql_save) {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=' . $file_csv);
+        $output = fopen("php://output", "w"); 
+        // 連接資料庫
+        $pdo = db_open();
+        $sqlstr = $sql;
+        $sth = $pdo->prepare($sqlstr);
+        if($sth->execute()) {
+            // 匯出欄位名稱
+            if($is_fields_title) {
+                echo build_fields_title($sth);
+            }
+            
+            // 匯出各筆資料
+            $total_rec = $sth->rowCount();
+            $data = '';
+            while($row = $sth->fetch(PDO::FETCH_ASSOC)) {
+                // unset($row['uid']);  // remove uid field
+                fputcsv($output, $row);
+            }
+        }
+        else {
+            die('Error!');
+        }
+        fclose($output);
+        die();
+    }
     return $_msg;
 }
 
 
 // ***** 主程式 *****
+
 $do = $_GET['do'] ?? '';
 
 // 接收傳入變數 (供 SQL_INPUT 及 SQL_QUERY 使用)
@@ -273,6 +454,7 @@ $sql = stripslashes($sql);  // 去除表單傳遞時產生的脫逸符號
 
 $sql_save = $_POST['sql_save'] ?? '';
 $fields_title = $_POST['fields_title'] ?? '';
+
 $is_sql_save = ($sql_save=='Y') ? true : false;
 $is_fields_title = ($fields_title=='Y') ? true : false;
 
@@ -303,189 +485,28 @@ switch($do) {
     case 'CREATE_DATABASE' : 
         $msg = do_create_database();
         break;
-        
-    case 'SQL_QUERY' :
-        $msg .= <<< HEREDOC
-        <h2>請輸入SQL指令</h2>
-        <form name="form1" method="post" action="?do=SQL_QUERY">
-        <textarea name="sql" rows="4" cols="80">{$sql}</textarea><br />
-        <input type="submit" value="送出查詢">
-        是否輸出到檔案 <input type="checkbox" name="sql_save" value="Y"> |
-        含表頭 <input type="checkbox" name="fields_title" value="Y"> 
-        
-        </form>
-        <hr />
-HEREDOC;
-        if(empty($sql)) {
-            $msg .= '<h2>SQL 範例</h2>' ;
-            $msg .= '<p>';
-            $msg .= 'SHOW TABLES<br>';
-            $msg .= 'SHOW TABLE STATUS<br>';
-            $msg .= '=======================<br>';
-            foreach($a_table as $key=>$sqlstr) {
-                $msg .= 'DESC ' . $key . '<br>';
-                // $msg .= '<p>SHOW COLUMNS FROM ' . $key . '</p>';
-                $msg .= 'SELECT count(*) FROM ' . $key . '<br>';
-                $msg .= 'SELECT * FROM ' . $key . '<br>';
-                $msg .= '-----------------------------------<br>';
-            }
-            $msg .= '</p>';
 
-        }
-        else {
-            $pdo = db_open();            
-            $sqlstr = $sql;
-            $sth = $pdo->query($sqlstr);            
-            if($sth===FALSE) {
-                $msg .= '<h3>執行結果失敗！</h3>';
-                $msg .= print_r($pdo->errorInfo(),TRUE);
-            }
-            else {
-                // SELECT 語法結果
-                $msg .= '<h3>rowCount: ' . $sth->rowCount() . '</h3>';
-                $msg .= build_fields_table($sth);
-            }
-        }
-        
-        // 依 SQL 匯出
-        if($is_sql_save) {
-            header('Content-Type: text/csv; charset=utf-8');  
-            header('Content-Disposition: attachment; filename=' . $file_csv);
-            $output = fopen("php://output", "w"); 
-            // 連接資料庫
-            $pdo = db_open();
-            $sqlstr = $sql;
-            $sth = $pdo->prepare($sqlstr);
-            if($sth->execute()) {    
-                // 匯出欄位名稱
-                if($is_fields_title) {
-                    echo build_fields_title($sth);
-                }
-                
-                // 匯出各筆資料
-                $total_rec = $sth->rowCount();
-                $data = '';
-                while($row = $sth->fetch(PDO::FETCH_ASSOC)) {
-                    // unset($row['uid']);  // remove uid field
-                    fputcsv($output, $row);
-                }
-            }
-            else {
-                die('Error!');
-            }
-            fclose($output);
-            die();
-        }
-        break;
-        
-        
-        
     case 'VIEW_DEFINE' :
         $msg = do_view_define($a_table, $a_record);
         break;
 
-
+    case 'SQL_QUERY' :
+        $msg = do_sql_query($sql, $a_table, $is_sql_save, $is_fields_title, $file_csv);
+        break;
 
     case 'EXPORT' :
-        // 資料表及匯入的各個欄位
-        $ary = array();
-        foreach($a_mapping as $k=>$value) {
-            $ary[] = $value;
-        }
-        // 開始匯出
-        header('Content-Type: text/csv; charset=utf-8');  
-        header('Content-Disposition: attachment; filename=' . $file_csv);
-        $output = fopen("php://output", "w"); 
-        if($is_title) {
-            fputcsv($output, $ary);  // 匯出欄位名稱
-        }
-        // 連接資料庫
-        $pdo = db_open();
-        $sqlstr = "SELECT * FROM " . $table_import;
-        $sth = $pdo->prepare($sqlstr);
-        if($sth->execute()) {
-            $total_rec = $sth->rowCount();
-            $data = '';
-            while($row = $sth->fetch(PDO::FETCH_ASSOC)) {
-                unset($row['uid']);  // remove uid field
-                fputcsv($output, $row);
-            }
-        }
-        else {
-            die('Error!');
-        }
-        fclose($output);
-        die();
-        break;
-    
-    
+        do_export($table_import, $a_mapping, $file_csv, $is_title);
 
     case 'IMPORT' :
-        $msg .= <<< HEREDOC
-        <h2>匯入檔案上傳</h2>
-        <p>選擇要匯入的 .csv 檔案 (請自行確認格式及內容的正確)</p>
-        <form name="form1" method="post" action="?do=IMPORT_SAVE" enctype="multipart/form-data">
-        檔案：<input type="file" name="file">
-        <input type="submit" value="上傳">
-        </form>
-HEREDOC;
+        $msg = do_import_input();
         break;
         
-
-
-    case 'IMPORT_SAVE' :        
-        $a_file = $_FILES["file"];  // 上傳的檔案內容
-        // 上傳檔案處理
-        if($a_file["size"]>0) {
-            $save_filename = $file_temp;
-            move_uploaded_file($a_file["tmp_name"], $save_filename);
-        }
-        header('Location: ?do=IMPORT_EXEC');
+    case 'IMPORT_SAVE' :
+        do_import_save($file_temp);
         break;
 
-
-
     case 'IMPORT_EXEC' :
-        // 資料表及匯入的各個欄位
-        $sqlstr = "INSERT INTO $table_import(";
-        foreach($a_mapping as $k=>$value) {
-            $sqlstr .= $value . ',';
-        }
-        $sqlstr = rtrim($sqlstr, ',');  // 移除最後一個逗號
-        $sqlstr .= ') VALUES ';
-
-        $pdo = db_open();
-        $time1 = microtime(TRUE);
-        $cnt_record = 0;
-        // 讀入資料後逐筆新增
-        if((@$handle = fopen($file_temp, "r")) !== FALSE) {
-            $record_all = '';
-            while(($row = __fgetcsv($handle)) !== FALSE) {
-                $cnt_record++;
-                $cnt = 0;
-                $record_one = '(';
-                foreach($a_mapping as $value) {
-                    $one = str_replace("'", "\'", $row[$cnt]);  // 處理單引號
-                    $cnt++;
-                    $record_one .= "'" . $one . "',";
-                }
-                $record_one = rtrim($record_one, ',');  // 移除最後一個逗號
-                $record_one .= '),';
-
-                $record_all .= $record_one;
-            }
-            fclose($handle);
-            $record_all = rtrim($record_all, ',');  // 移除最後一個逗號
-            $sqlstr .= $record_all;
-
-            if($pdo->query($sqlstr)) {
-                $msg .= '已新增 ' . $cnt_record . ' 筆記錄';
-            }
-        }
-        @unlink($file_temp);
-        $time2 = microtime(TRUE);
-        $spend = $time2 - $time1;
-        $msg .= '<p>共花費時間：' . $spend . '</p>';
+        $msg = do_import_exec($table_import, $a_mapping, $file_temp);
         break;
 } /* end of switch */
 } /* end of if..else */
