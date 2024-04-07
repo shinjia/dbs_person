@@ -10,9 +10,9 @@ $a_valid['VIEW_DEFINE']     = true;  // 查看定義
 $a_valid['ADD_DATA']        = true;  // 新增預設資料
 $a_valid['LIST_DATA']       = true;  // 列出資料
 $a_valid['EXPORT']          = true;  // 匯出 (單一資料表)
-$a_valid['IMPORT']          = true;  // 資料匯入
-$a_valid['IMPORT_SAVE']     = true;  // 資料匯入之上傳 (配合IMPORT)
-$a_valid['IMPORT_EXEC']     = true;  // 資料匯入之執行 (配合IMPORT)
+$a_valid['IMPORT_INPUT']    = true;  // 資料匯入 (IMPORT Step1: input 上傳選檔)
+$a_valid['IMPORT_SAVE']     = true;  // 資料匯入 (IMPORT Step2: save 上傳儲存)
+$a_valid['IMPORT_EXEC']     = true;  // 資料匯入 (IMPORT Step3: exec 執行)
 $a_valid['SQL_QUERY']       = true;  // 執行自定SQL
 
 
@@ -497,7 +497,7 @@ switch($do) {
     case 'EXPORT' :
         do_export($table_import, $a_mapping, $file_csv, $is_title);
 
-    case 'IMPORT' :
+    case 'IMPORT_INPUT' :
         $msg = do_import_input();
         break;
         
@@ -523,7 +523,7 @@ $menu .= (!isset($a_valid['CREATE_TABLE']) || !$a_valid['CREATE_TABLE']) ? '' : 
 $menu .= (!isset($a_valid['DROP_TABLE']) || !$a_valid['DROP_TABLE']) ? '' : '| <a href="?do=DROP_TABLE" onClick="return confirm(\'確定要刪除嗎？\');">刪除資料表</a> ';
 $menu .= '| --- ';
 $menu .= (!isset($a_valid['EXPORT']) || !$a_valid['EXPORT']) ? '' : '| <a href="?do=EXPORT">匯出</a> ';
-$menu .= (!isset($a_valid['IMPORT']) || !$a_valid['IMPORT']) ? '' : '| <a href="?do=IMPORT">匯入</a> ';
+$menu .= (!isset($a_valid['IMPORT_INPUT']) || !$a_valid['IMPORT_INPUT']) ? '' : '| <a href="?do=IMPORT_INPUT">匯入</a> ';
 $menu .= '| --- ';
 $menu .= (!isset($a_valid['ADD_DATA']) || !$a_valid['ADD_DATA']) ? '' : '| <a href="?do=ADD_DATA">新增預設記錄</a> ';
 $menu .= (!isset($a_valid['LIST_DATA']) || !$a_valid['LIST_DATA']) ? '' : '| <a href="?do=LIST_DATA">查看記錄內容</a> ';

@@ -3,20 +3,17 @@ include '../common/config.php';
 include '../common/define.php';
 include '../common/utility.php';
 
-// 含分頁之資料列表
-
-include 'config.php';
-include 'utility.php';
-
 // 可接收 GET 及 POST 傳入
 $key = $_POST['key'] ?? ($_GET['key']??'^$!@#');
+
+$str_key = '查詢姓名內包含『' . $key . '』的記錄';
 
 // 頁碼參數
 $page = $_GET['page'] ??  1;   // 目前的頁碼
 $nump = $_GET['nump'] ?? 10;   // 每頁的筆數
 
 // 增加傳入 uid，把該筆記錄高亮標示
-$uid_highlight = isset($_GET['uid']) ? $_GET['uid'] : '';
+$uid_highlight = $_GET['uid'] ?? '';
 
 // 參數安全檢查
 $page = intval($page);  // 轉為整數
@@ -55,7 +52,6 @@ try {
     $total_page = ceil($total_rec / $nump);  // 計算總頁數
 }
 catch(PDOException $e) {
-    // db_error(ERROR_QUERY, $e->getMessage());
     $ihc_error = error_message(ERROR_QUERY, $e->getMessage());
 }
 
@@ -93,7 +89,7 @@ try {
         // 指定的 uid 記錄高亮顯示
         $str_highlight = '';
         if($uid==$uid_highlight) {
-            $str_highlight = 'class="hightlight"';
+            $str_highlight = 'class="hightlight table-warning"';
         }
 
         // 超連結
@@ -103,8 +99,7 @@ try {
 
         $data .= <<< HEREDOC
             <tr {$str_highlight}>
-            <th>{$cnt}</th>
-            <td>{$uid}</td>
+            <th class="table-secondary text-center">{$cnt}</th>
             <td>{$usercode}</td>
             <td>{$username}</td>
             <td>{$address}</td>
@@ -112,9 +107,11 @@ try {
             <td>{$height}</td>
             <td>{$weight}</td>
             <td>{$remark}</td>
-            <td><a href="{$lnk_display}">詳細</a></td>
-            <td><a href="{$lnk_edit}">修改</a></td>
-            <td><a href="{$lnk_delete}" onClick="return confirm('確定要刪除嗎？');">刪除</a></td>
+            <td class="table-secondary" style="width: 1%; white-space:nowrap;">
+                <a href="{$lnk_display}" class="btn btn-info btn-sm">詳細</a>
+                <a href="{$lnk_edit}" class="btn btn-warning btn-sm">修改</a>
+                <a href="{$lnk_delete}" class="btn btn-danger btn-sm" onClick="return confirm('確定要刪除嗎？');">刪除</a>
+            </td>
         </tr>
 HEREDOC;
     }
@@ -123,18 +120,18 @@ HEREDOC;
     $a_ext = array(
         "key"=>$key
     );
-    $ihc_navigator = pagination_ext($total_page, $page, $nump, $a_ext);
+    $ihc_pagination = pagination_ext($total_rec, $total_page, $page, $nump, $a_ext);
     
     $lnk_add = 'add.php?page=' . $page . '&nump=' . $nump;
 
     //網頁顯示
     $ihc_content = <<< HEREDOC
-    <h3>共有 $total_rec 筆記錄</h2>
-    {$ihc_navigator}
-    <table class="table">   
-        <tr>
-            <th>順序</th>
-            <th>uid</th>
+    <nav>
+        {$ihc_pagination}
+    </nav>
+    <table class="table table-hover">
+        <tr class="table-secondary">
+            <th class="text-center">順序</th>
             <th>代碼</th>
             <th>姓名</th>
             <th>地址</th>
@@ -142,7 +139,7 @@ HEREDOC;
             <th>身高</th>
             <th>體重</th>
             <th>備註</th>
-            <th colspan="3" align="center"><a href="{$lnk_add}">新增記錄</a></th>
+            <th class="text-center"><a href="{$lnk_add}" class="btn btn-success btn-sm">新增記錄</a></th>
         </tr>
     {$data}
     </table>
@@ -152,7 +149,6 @@ HEREDOC;
     if($total_rec==0) { $ihc_content = '<p class="center">無資料</p>';}
 }
 catch(PDOException $e) {
-    // db_error(ERROR_QUERY, $e->getMessage());
     $ihc_error = error_message('ERROR_QUERY', $e->getMessage());
 }
 
@@ -160,7 +156,7 @@ db_close();
 
 
 $html = <<< HEREDOC
-<h2>資料列表 (查詢分頁)</h2>
+<h3 class="text-center">{$str_key}</h3>
 {$ihc_content}
 {$ihc_error}
 HEREDOC;

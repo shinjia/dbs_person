@@ -48,7 +48,6 @@ try {
    header('Location: ' . $lnk_display);
 }
 catch(PDOException $e) {
-   // db_error(ERROR_QUERY, $e->getMessage());
    $ihc_error = error_message('ERROR_QUERY', $e->getMessage());
    
    $html = <<< HEREDOC

@@ -7,21 +7,21 @@ function error_message($type='', $ext='') {
     'ERROR_QUERY' => '資料庫執行發生錯誤',
     'default'     => '有錯誤發生！' );  // 注意最後一項的結尾符號
 
-    $msg = isset($a_errmsg[$type]) ? $a_errmsg[$type] : $a_errmsg['default'];
+    $_msg = $a_errmsg[$type] ?? $a_errmsg['default'];
 
     if($type=='page') {
         $msg = '檔案資料『' . $ext . '』不存在';
     }
     
     $ret_str  = '<h2>錯誤警告</h2>';
-    $ret_str .= '<p class="center">' . $msg . '</p>';
+    $ret_str .= '<p class="center">' . $_msg . '</p>';
     $ret_str .= ($is_debug) ? ('<p class="center">' . $ext . '</p>') : '';
 
     return $ret_str;
 }
 
 
-function pagination($total_page, $page, $nump=10) {
+function pagination($total_rec, $total_page, $page, $nump=10) {
     // ------ 分頁處理開始 -------------------------------------
     // 處理分頁之超連結：上一頁、下一頁、第一首、最後頁
     $lnk_pageprev = '?nump='.$nump.'&page=' . (($page==1)?(1):($page-1));
@@ -38,84 +38,152 @@ function pagination($total_page, $page, $nump=10) {
     { $lnk_pagelist .= '<a href="?nump='.$nump.'&page='.$i.'">'.$i.'</a> '; }
 
     // 處理各頁之超連結：下拉式跳頁選單
-    $lnk_pagegoto  = '<form method="GET" action="" style="margin:0;">';
-    $lnk_pagegoto .= '<select class="form-select" name="page" onChange="submit();">';
+    $frm_pagegoto = '';
+    $frm_pagegoto .= '<select class="form-select" name="page" onChange="submit();">';
     for($i=1; $i<=$total_page; $i++) {
         $is_current = (($i-$page)==0) ? ' SELECTED' : '';
-        $lnk_pagegoto .= '<option' . $is_current . '>' . $i . '</option>';
+        $frm_pagegoto .= '<option' . $is_current . '>' . $i . '</option>';
     }
-    $lnk_pagegoto .= '</select>';
-    $lnk_pagegoto .= '<input type="hidden" name="nump" value="'. $nump .'">';
-    $lnk_pagegoto .= '</form>';
+    $frm_pagegoto .= '</select>';
 
-    // 設定每頁筆數的功能
-    
-    $set_nump = <<< HEREDOC
-    <form method="GET" action="" style="margin:0;">
-    每頁筆數 <input class="form-control" type="text" value="{$nump}" size="1" aria-label="input example" onChange="submit();" >
-
-    </form>
-HEREDOC;
+    // 設定每頁筆數的功能    
+    $frm_setnump = '<input type="text" name="nump" value="' . $nump . '" size="1" class="form-control" onChange="submit();">';
 
     // 將各種超連結組合成HTML顯示畫面
-    $ihc_navigator = '';
-    $ihc_navigator .= <<< HEREDOC
-    <nav aria-label="Page navigation example">
+    $_nav = <<< HEREDOC
+    <form method="GET" action="" style="margin:0;">
     <ul class="pagination justify-content-center">
+    
+        <li class="page-item disabled me-3">
+            <span class="page-link text-nowrap">總筆數：{$total_rec}</span>
+        </li>
+        <!-- 總頁數 -->
+        <li class="page-item disabled me-3">
+            <span class="page-link text-nowrap">總頁數：{$total_page}</span>
+        </li>
+
+        <!-- 移至頁碼的按鈕 -->
         <li class="page-item" data-bs-toggle="tooltip" title="第一頁"><a class="page-link" href="{$lnk_pagehead}" aria-label="First">«</a></li>
         <li class="page-item" data-bs-toggle="tooltip" title="上一頁"><a class="page-link" href="{$lnk_pageprev}" aria-label="Previous">‹</a></li>
-
         <!-- 動態生成的頁碼按鈕可以在這裏插入 -->
-
         <li class="page-item" data-bs-toggle="tooltip" title="下一頁"><a class="page-link" href="{$lnk_pagenext}" aria-label="Next">›</a></li>
         <li class="page-item" data-bs-toggle="tooltip" title="最末頁"><a class="page-link" href="{$lnk_pagelast}" aria-label="Last">»</a></li>
-        
-        <li class="page-item disabled">
-            <span class="page-link">頁數：{$page} / {$total_page}</span>
-        </li>
-        <li class="page-item disabled">
-            <span class="page-link">{$set_nump}</span>
-        </li>
-        
-        <!-- 移至頁數的下拉選單或輸入框 -->
-        <!-- 根據您的需求，可以用Bootstrap的下拉選單或是自定義的跳轉表單來實現 -->
 
-        <li class="page-item">
-            <div class="input-group ml-2" style="width: auto;">
-                <input type="text" class="form-control" placeholder="移至頁數" aria-label="Goto page">
-                {$lnk_pagegoto}
-                <button class="btn btn-outline-secondary" type="button">Go</button>
+        <!-- 移至頁碼的下拉選單 -->
+        <li class="page-item disabled ms-3">
+            <span class="page-link text-nowrap">目前頁</span>
+        </li>
+        <li class="page-item me-3">
+            <div class="input-group">
+                {$frm_pagegoto}
             </div>
         </li>
-        
+
+        <!-- 每頁筆數及設定按鈕 -->
+        <li class="page-item disabled">
+            <span class="page-link text-nowrap">每頁筆數</span>
+        </li>
+        <li class="page-item">
+            {$frm_setnump}
+        </li>            
+        <li class="page-item">
+            <button class="btn btn-outline-secondary">設定</button>
+        </li>        
     </ul>
-</nav>
-
-
-    <nav aria-label="Page navigation example">
-        <ul class="pagination">
-            <li class="page-item"><a class="page-link" href="{$lnk_pagehead}">第一頁</a></li>
-            <li class="page-item"><a class="page-link" href="{$lnk_pageprev}">上一頁</a></li>
-            <li class="page-item"><a class="page-link" href="{$lnk_pagenext}">下一頁</a></li>
-            <li class="page-item"><a class="page-link" href="{$lnk_pagelast}">最末頁</a></li>
-            <li>&nbsp;&nbsp;&nbsp;&nbsp;</li>
-            <li>頁數：{$page} / {$total_page}</li>
-            <li>&nbsp;&nbsp;&nbsp;&nbsp;</li>
-            <li>移至頁數</li>
-            <li>{$lnk_pagegoto}</li>
-            <li>&nbsp;&nbsp;&nbsp;&nbsp;</li>
-            <li nowrap>{$set_nump}</li>
-
-        </ul>
-    </nav>
+    </form>
 HEREDOC;
     // ------ 分頁處理結束 -------------------------------------
 
-    return $ihc_navigator;
+    return $_nav;
 }
 
 
-function pagination_ext($total_page, $page, $nump=10, $a_ext=array()) {
+function pagination_ext($total_rec, $total_page, $page, $nump=10, $a_ext=array()) {
+    $pre = '';
+    $pre_post = ''; 
+    foreach($a_ext as $key=>$value) {
+        $pre .= $key . '=' . $value . '&';
+        $pre_post .= '<input type="hidden" name="' . $key . '" value="' . $value . '">';
+    }
+
+    // ------ 分頁處理開始 -------------------------------------
+    // 處理分頁之超連結：上一頁、下一頁、第一首、最後頁
+    $lnk_pageprev = '?'.$pre.'nump='.$nump.'&page=' . (($page==1)?(1):($page-1));
+    $lnk_pagenext = '?'.$pre.'nump='.$nump.'&page=' . (($page==$total_page)?($total_page):($page+1));
+    $lnk_pagehead = '?'.$pre.'nump='.$nump.'&page=1';
+    $lnk_pagelast = '?'.$pre.'nump='.$nump.'&page=' . $total_page;
+
+    // 處理各頁之超連結：列出所有頁數 (暫未用到，保留供參考)
+    $lnk_pagelist = "";
+    for($i=1; $i<=$page-1; $i++)
+    { $lnk_pagelist .= '<a href="?'.$pre.'nump='.$nump.'&page='.$i.'">'.$i.'</a> '; }
+    $lnk_pagelist .= '[' . $i . '] ';
+    for($i=$page+1; $i<=$total_page; $i++)
+    { $lnk_pagelist .= '<a href="?'.$pre.'nump='.$nump.'&page='.$i.'">'.$i.'</a> '; }
+
+    // 處理各頁之超連結：下拉式跳頁選單
+    $frm_pagegoto = '';
+    $frm_pagegoto .= '<select class="form-select" name="page" onChange="submit();">';
+    for($i=1; $i<=$total_page; $i++) {
+        $is_current = (($i-$page)==0) ? ' SELECTED' : '';
+        $frm_pagegoto .= '<option' . $is_current . '>' . $i . '</option>';
+    }
+    $frm_pagegoto .= '</select>';
+
+    // 設定每頁筆數的功能    
+    $frm_setnump = '<input type="text" name="nump" value="' . $nump . '" size="1" class="form-control" onChange="submit();">';
+
+    // 將各種超連結組合成HTML顯示畫面
+    $_nav = <<< HEREDOC
+    <form method="GET" action="" style="margin:0;">
+    <ul class="pagination justify-content-center">
+    
+        <li class="page-item disabled me-3">
+            <span class="page-link text-nowrap">總筆數：{$total_rec}</span>
+        </li>
+        <!-- 總頁數 -->
+        <li class="page-item disabled me-3">
+            <span class="page-link text-nowrap">總頁數：{$total_page}</span>
+        </li>
+
+        <!-- 移至頁碼的按鈕 -->
+        <li class="page-item" data-bs-toggle="tooltip" title="第一頁"><a class="page-link" href="{$lnk_pagehead}" aria-label="First">«</a></li>
+        <li class="page-item" data-bs-toggle="tooltip" title="上一頁"><a class="page-link" href="{$lnk_pageprev}" aria-label="Previous">‹</a></li>
+        <!-- 動態生成的頁碼按鈕可以在這裏插入 -->
+        <li class="page-item" data-bs-toggle="tooltip" title="下一頁"><a class="page-link" href="{$lnk_pagenext}" aria-label="Next">›</a></li>
+        <li class="page-item" data-bs-toggle="tooltip" title="最末頁"><a class="page-link" href="{$lnk_pagelast}" aria-label="Last">»</a></li>
+
+        <!-- 移至頁碼的下拉選單 -->
+        <li class="page-item disabled ms-3">
+            <span class="page-link text-nowrap">目前頁</span>
+        </li>
+        <li class="page-item me-3">
+            <div class="input-group">
+                {$frm_pagegoto}
+            </div>
+        </li>
+
+        <!-- 每頁筆數及設定按鈕 -->
+        <li class="page-item disabled">
+            <span class="page-link text-nowrap">每頁筆數</span>
+        </li>
+        <li class="page-item">
+            {$frm_setnump}
+            {$pre_post}
+        </li>            
+        <li class="page-item">
+            <button class="btn btn-outline-secondary">設定</button>
+        </li>        
+    </ul>
+    </form>
+HEREDOC;
+    // ------ 分頁處理結束 -------------------------------------
+
+    return $_nav;
+}
+
+
+function xpagination_ext($total_page, $page, $nump=10, $a_ext=array()) {
     $pre = '';
     $pre_post = ''; 
     foreach($a_ext as $key=>$value) {
@@ -161,7 +229,7 @@ function pagination_ext($total_page, $page, $nump=10, $a_ext=array()) {
     // $ihc_navigator .= '<table border="0" align="center"><tr><td>' . $lnk_pagelist . '</td></tr></table>';
     $ihc_navigator .= <<< HEREDOC
     <nav aria-label="Page navigation example">
-        <ul class="pagination">
+        <ul class="pagination" style="display: flex;">
             <li class="page-item"><a class="page-link" href="{$lnk_pagehead}">第一頁</a></li>
             <li class="page-item"><a class="page-link" href="{$lnk_pageprev}">上一頁</a></li>
             <li class="page-item"><a class="page-link" href="{$lnk_pagenext}">下一頁</a></li>

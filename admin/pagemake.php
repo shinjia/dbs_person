@@ -17,7 +17,7 @@ function pagemake($content='', $head='') {
 <!-- Fixed navbar -->
 <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
   <div class="container-fluid">
-    <a class="navbar-brand" href="#">後台管理</a>
+    <a class="navbar-brand" href="#">dbs_person 後台管理</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -27,18 +27,18 @@ function pagemake($content='', $head='') {
           <a class="nav-link active" aria-current="page" href="index.php">Home</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="list_page.php">說明</a>
+          <a class="nav-link" href="list_page.php">資料列表</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="page.php?code=note2">資料列表</a>
+          <a class="nav-link" href="page.php?code=note">說明</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link disabled" aria-disabled="true">Disabled</a>
+          <a class="nav-link disabled" aria-disabled="true">未定</a>
         </li>
       </ul>
-      <form class="d-flex" role="search">
-        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-        <button class="btn btn-outline-success" type="submit">Search</button>
+      <form class="d-flex" role="search" method="post" action="findp_x.php">
+        <input name="key" class="form-control me-2" type="search" placeholder="輸入姓名" aria-label="Search">
+        <button class="btn btn-outline-success text-nowrap" type="submit">搜尋</button>
       </form>
     </div>
   </div>

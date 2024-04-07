@@ -37,8 +37,7 @@ try {
 
         $data .= <<< HEREDOC
         <tr>
-            <th>{$cnt}</th>
-            <td>{$uid}</td>
+            <th class="table-secondary text-center">{$cnt}</th>
             <td>{$usercode}</td>
             <td>{$username}</td>
             <td>{$address}</td>
@@ -46,20 +45,16 @@ try {
             <td>{$height}</td>
             <td>{$weight}</td>
             <td>{$remark}</td>
-            <td><a href="display.php?uid={$uid}">詳細</a></td>
-            <td><a href="edit.php?uid={$uid}">修改</a></td>
-            <td><a href="delete.php?uid={$uid}" onClick="return confirm('確定要刪除嗎？');">刪除</a></td>
         </tr>
 HEREDOC;
     }
 
    //網頁顯示
     $ihc_content = <<< HEREDOC
-    <h3>共有 {$total_rec} 筆記錄</h3>
-    <table class="table">
-        <tr>
-            <th>順序</th>
-            <th>uid</th>
+    <h3 class="text-center">共有 {$total_rec} 筆記錄</h3>
+    <table class="table table-hover">
+        <tr class="table-secondary">
+            <th class="text-center">順序</th>
             <th>代碼</th>
             <th>姓名</th>
             <th>地址</th>
@@ -67,9 +62,8 @@ HEREDOC;
             <th>身高</th>
             <th>體重</th>
             <th>備註</th>
-            <th colspan="3" align="center"><a href="add.php" class="btn btn-primary">新增記錄</a></th>
         </tr>
-        {$data}
+    {$data}
     </table>
 HEREDOC;
 
@@ -77,7 +71,6 @@ HEREDOC;
     if($total_rec==0) { $ihc_content = '<p class="center">無資料</p>';}
 }
 catch(PDOException $e) {
-    // db_error(ERROR_QUERY, $e->getMessage());
     $ihc_error = error_message('ERROR_QUERY', $e->getMessage());
 }
 
