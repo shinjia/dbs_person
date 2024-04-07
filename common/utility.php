@@ -39,7 +39,7 @@ function pagination($total_page, $page, $nump=10) {
 
     // 處理各頁之超連結：下拉式跳頁選單
     $lnk_pagegoto  = '<form method="GET" action="" style="margin:0;">';
-    $lnk_pagegoto .= '<select name="page" onChange="submit();">';
+    $lnk_pagegoto .= '<select class="form-select" name="page" onChange="submit();">';
     for($i=1; $i<=$total_page; $i++) {
         $is_current = (($i-$page)==0) ? ' SELECTED' : '';
         $lnk_pagegoto .= '<option' . $is_current . '>' . $i . '</option>';
@@ -49,14 +49,49 @@ function pagination($total_page, $page, $nump=10) {
     $lnk_pagegoto .= '</form>';
 
     // 設定每頁筆數的功能
-    $set_nump = '<form method="GET" action="" style="margin:0;">';
-    $set_nump .= '每頁筆數<input type="text" name="nump" value="' . $nump . '" size="1" onChange="submit();">';
-    $set_nump .= '</form>';
+    
+    $set_nump = <<< HEREDOC
+    <form method="GET" action="" style="margin:0;">
+    每頁筆數 <input class="form-control" type="text" value="{$nump}" size="1" aria-label="input example" onChange="submit();" >
+
+    </form>
+HEREDOC;
 
     // 將各種超連結組合成HTML顯示畫面
     $ihc_navigator = '';
-    // $ihc_navigator .= '<table border="0" align="center"><tr><td>' . $lnk_pagelist . '</td></tr></table>';
     $ihc_navigator .= <<< HEREDOC
+    <nav aria-label="Page navigation example">
+    <ul class="pagination justify-content-center">
+        <li class="page-item" data-bs-toggle="tooltip" title="第一頁"><a class="page-link" href="{$lnk_pagehead}" aria-label="First">«</a></li>
+        <li class="page-item" data-bs-toggle="tooltip" title="上一頁"><a class="page-link" href="{$lnk_pageprev}" aria-label="Previous">‹</a></li>
+
+        <!-- 動態生成的頁碼按鈕可以在這裏插入 -->
+
+        <li class="page-item" data-bs-toggle="tooltip" title="下一頁"><a class="page-link" href="{$lnk_pagenext}" aria-label="Next">›</a></li>
+        <li class="page-item" data-bs-toggle="tooltip" title="最末頁"><a class="page-link" href="{$lnk_pagelast}" aria-label="Last">»</a></li>
+        
+        <li class="page-item disabled">
+            <span class="page-link">頁數：{$page} / {$total_page}</span>
+        </li>
+        <li class="page-item disabled">
+            <span class="page-link">{$set_nump}</span>
+        </li>
+        
+        <!-- 移至頁數的下拉選單或輸入框 -->
+        <!-- 根據您的需求，可以用Bootstrap的下拉選單或是自定義的跳轉表單來實現 -->
+
+        <li class="page-item">
+            <div class="input-group ml-2" style="width: auto;">
+                <input type="text" class="form-control" placeholder="移至頁數" aria-label="Goto page">
+                {$lnk_pagegoto}
+                <button class="btn btn-outline-secondary" type="button">Go</button>
+            </div>
+        </li>
+        
+    </ul>
+</nav>
+
+
     <nav aria-label="Page navigation example">
         <ul class="pagination">
             <li class="page-item"><a class="page-link" href="{$lnk_pagehead}">第一頁</a></li>
