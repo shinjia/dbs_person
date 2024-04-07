@@ -133,6 +133,137 @@ function build_fields_title($sth) {
 }
 
 
+// ***** 各段副程式 *****
+
+function do_add_data($a_record) {
+    $pdo = db_open();
+        
+    $_msg = '<h2>新增記錄</h2>';
+    foreach($a_record as $key=>$sqlstr) {
+        $sth = $pdo->query($sqlstr);
+        if($sth===FALSE) {
+            $_msg .= '<p>無法新增！</p>';
+            $_msg .= print_r($pdo->errorInfo(),TRUE);
+        }
+        else {
+            $new_uid = $pdo->lastInsertId();    // 傳回剛才新增記錄的 auto_increment 的欄位值
+            $_msg .= '<p>新增成功 (最後 uid=' . $new_uid .  ')</p>';
+        }
+    }
+    return $_msg;
+}
+
+
+function do_list_data($a_table) {
+    $pdo = db_open();        
+    $_msg = '<h2>記錄內容</h2>';
+    foreach($a_table as $key=>$sqlstr) {
+        $sqlstr = 'SELECT * FROM ' . $key;
+        $sth = $pdo->query($sqlstr);
+        $_msg = '<h3>資料表『' . $key . '』</h3>';
+        if ($sth===FALSE) {
+            $_msg .= '<p>無法顯示</p>';
+            $_msg .= print_r($pdo->errorInfo(),TRUE);
+        }
+        else {
+            $_msg .= build_fields_table($sth);
+        }
+    }
+    return $_msg;
+}
+
+
+function do_create_table($a_table) {
+    $pdo = db_open();        
+    $_msg = '<h2>執行資料表建立</h2>';        
+    foreach($a_table as $key=>$sqlstr) {
+        $_msg .= '<h3>資料表『' . $key . '』</h3>';
+        try { 
+            $sth = $pdo->query($sqlstr);   
+            if($sth===FALSE) {
+                $_msg .= '<p>建立失敗！</p>';
+                $_msg .= print_r($pdo->errorInfo(),TRUE);
+            }
+            else {
+                $_msg .= '<p>建立完成</p>';
+            }
+        } catch(PDOException $e) {            
+            $_msg .= '<p>無法建立！</p>';
+            $_msg .= $e->getMessage();
+        }
+    }
+    return $_msg;
+}
+
+
+function do_drop_table($a_table) {
+    $pdo = db_open();        
+    // 執行SQL及處理結果
+    $_msg = '<h2>執行資料表刪除</h2>';
+    foreach($a_table as $key=>$sqlstr) {
+        $sqlstr = 'DROP TABLE ' . $key;
+        $_msg .= '<h3>資料表『' . $key . '』</h3>';
+        try { 
+            $sth = $pdo->exec($sqlstr);
+            if($sth===FALSE) {
+                $_msg .= '<p>刪除失敗！</p>';
+                $_msg .= print_r($pdo->errorInfo(),TRUE);
+            }
+            else {
+                $_msg .= '<p>刪除成功</p>';
+            }
+        } catch(PDOException $e) {
+            $_msg .= '<p>無法刪除！</p>';
+            $_msg .= $e->getMessage();
+        }
+    }
+    return $_msg;
+}
+
+
+function do_create_database() {
+    try {
+        $pdo = new PDO('mysql:host='.DB_SERVERIP, DB_USERNAME, DB_PASSWORD);
+        if(defined('SET_CHARACTER')) $pdo->query(SET_CHARACTER);
+        
+        $sqlstr = 'CREATE DATABASE ' . DB_DATABASE;
+        $sqlstr .= ' DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ';   // or utf8
+        
+        $pdo->exec($sqlstr);  // or die(print_r($pdo->errorInfo(), true));
+    }
+    catch (PDOException $e) {
+        die("DB ERROR: ". $e->getMessage());
+    }
+    $_msg .= '<h2>資料庫建立</h2>';
+    $_msg .= print_r($pdo->errorInfo(),TRUE);
+    $_msg .= '<p>資料庫『' . DB_DATABASE . '』</p>';
+    $_msg .= '<p>' . $sqlstr . '</p>';
+    $_msg .= '<p>如要刪除 DROP DATABASE ' . DB_DATABASE . '</p>';
+    
+    return $_msg;
+}
+
+
+
+function do_view_define($a_table, $a_record) {
+    $_msg = '<table border="0"><tr><td>';
+    $_msg .= '<div align="left">';
+    $_msg .= '<h2>資料表 (程式內定義)</h2>';
+    foreach($a_table as $key=>$sqlstr) {
+        $_msg .= '<h3>' . $key . '<h3>';
+        $_msg .= '<pre>' . $sqlstr . '</pre><hr />';
+    }
+    $_msg .= '<h2>預設 SQL (程式內定義)</h2><hr />';
+    foreach($a_record as $key=>$sqlstr) {
+        $_msg .= '<pre>' . $sqlstr . '</pre>';
+    }
+    $_msg .= '</div>';
+    $_msg .= '</td></tr></table>';
+    
+    return $_msg;
+}
+
+
 // ***** 主程式 *****
 $do = $_GET['do'] ?? '';
 
@@ -154,102 +285,24 @@ if(!isset($a_valid[$do]) || !$a_valid[$do]) {
 else {
 switch($do) {
     case 'ADD_DATA' :
-        $pdo = db_open();
-        
-        $msg .= '<h2>新增記錄</h2>';
-        foreach($a_record as $key=>$sqlstr) {
-            $sth = $pdo->query($sqlstr);
-            if($sth===FALSE) {
-                $msg .= '<p>無法新增！</p>';
-                $msg .= print_r($pdo->errorInfo(),TRUE);
-            }
-            else {
-                $new_uid = $pdo->lastInsertId();    // 傳回剛才新增記錄的 auto_increment 的欄位值
-                $msg .= '<p>新增成功 (最後 uid=' . $new_uid .  ')</p>';
-            }
-        }
+        $msg = do_add_data($a_record);
         break;
-        
-        
         
     case 'LIST_DATA' :
-        $pdo = db_open();        
-        $msg .= '<h2>記錄內容</h2>';
-        foreach($a_table as $key=>$sqlstr) {
-            $sqlstr = 'SELECT * FROM ' . $key;
-            $sth = $pdo->query($sqlstr);
-            $msg .= '<h3>資料表『' . $key . '』</h3>';
-            if ($sth===FALSE) {
-                $msg .= '<p>無法顯示</p>';
-                $msg .= print_r($pdo->errorInfo(),TRUE);
-            }
-            else {
-                $msg .= build_fields_table($sth);
-            }
-        }
+        $msg = do_list_data($a_table);
         break;
-        
-        
         
     case 'CREATE_TABLE' : 
-        $pdo = db_open();        
-        $msg .= '<h2>資料表建立結果</h2>';        
-        foreach($a_table as $key=>$sqlstr) {
-            $msg .= '<h3>資料表『' . $key . '』</h3>';            
-            $sth = $pdo->query($sqlstr);   
-            if($sth===FALSE) {
-                $msg .= '<p>無法建立！</p>';
-                $msg .= print_r($pdo->errorInfo(),TRUE);
-            }
-            else {
-                $msg .= '<p>建立完成</p>';
-            }
-        }
+        $msg = do_create_table($a_table);
         break;
-
-
         
     case 'DROP_TABLE' : 
-        $pdo = db_open();        
-        // 執行SQL及處理結果
-        $msg .= '<h2>資料表刪除結果</h2>';
-        foreach($a_table as $key=>$sqlstr) {
-            $msg .= '<h3>資料表『' . $key . '』</h3>';            
-            $sqlstr = 'DROP TABLE ' . $key;
-            $sth = $pdo->exec($sqlstr);
-            if($sth===FALSE) {
-                $msg .= '<p>無法刪除！</p>';
-                $msg .= print_r($pdo->errorInfo(),TRUE);
-            }
-            else {
-                $msg .= '<p>刪除成功</p>';
-            }
-        }
+        $msg = do_drop_table($a_table);
         break;
-
-
 
     case 'CREATE_DATABASE' : 
-        try {
-            $pdo = new PDO('mysql:host='.DB_SERVERIP, DB_USERNAME, DB_PASSWORD);
-            if(defined('SET_CHARACTER')) $pdo->query(SET_CHARACTER);
-            
-            $sqlstr = 'CREATE DATABASE ' . DB_DATABASE;
-            $sqlstr .= ' DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ';   // or utf8
-            
-            $pdo->exec($sqlstr);  // or die(print_r($pdo->errorInfo(), true));
-        }
-        catch (PDOException $e) {
-            die("DB ERROR: ". $e->getMessage());
-        }
-        $msg .= '<h2>資料庫建立</h2>';
-        $msg .= print_r($pdo->errorInfo(),TRUE);
-        $msg .= '<p>資料庫『' . DB_DATABASE . '』</p>';
-        $msg .= '<p>' . $sqlstr . '</p>';
-        $msg .= '<p>如要刪除 DROP DATABASE ' . DB_DATABASE . '</p>';
+        $msg = do_create_database();
         break;
-        
-        
         
     case 'SQL_QUERY' :
         $msg .= <<< HEREDOC
@@ -328,19 +381,7 @@ HEREDOC;
         
         
     case 'VIEW_DEFINE' :
-        $msg .= '<table border="0"><tr><td>';
-        $msg .= '<div align="left">';
-        $msg .= '<h2>資料表 (程式內定義)</h2>';
-        foreach($a_table as $key=>$sqlstr) {
-            $msg .= '<h3>' . $key . '<h3>';
-            $msg .= '<pre>' . $sqlstr . '</pre><hr />';
-        }
-        $msg .= '<h2>預設 SQL (程式內定義)</h2><hr />';
-        foreach($a_record as $key=>$sqlstr) {
-            $msg .= '<pre>' . $sqlstr . '</pre>';
-        }
-        $msg .= '</div>';
-        $msg .= '</td></tr></table>';
+        $msg = do_view_define($a_table, $a_record);
         break;
 
 
