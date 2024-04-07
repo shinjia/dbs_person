@@ -9,11 +9,10 @@ $a_valid['DROP_TABLE']      = true;  // 刪除資料表
 $a_valid['VIEW_DEFINE']     = true;  // 查看定義
 $a_valid['ADD_DATA']        = true;  // 新增預設資料
 $a_valid['LIST_DATA']       = true;  // 列出資料
-$a_valid['EXPORT_TBL']      = true;  // 匯出 (單一資料表)
-$a_valid['EXPORT_SQL']      = true;  // 匯出 (指定的SQL)
+$a_valid['EXPORT']          = true;  // 匯出 (單一資料表)
 $a_valid['IMPORT']          = true;  // 資料匯入
-$a_valid['IMPORT_SAVE']     = true;  // 資料匯入之上傳 (配含IMPORT)
-$a_valid['IMPORT_EXEC']     = true;  // 資料匯入之執行 (配含IMPORT)
+$a_valid['IMPORT_SAVE']     = true;  // 資料匯入之上傳 (配合IMPORT)
+$a_valid['IMPORT_EXEC']     = true;  // 資料匯入之執行 (配合IMPORT)
 $a_valid['SQL_QUERY']       = true;  // 執行自定SQL
 
 
@@ -41,11 +40,6 @@ $a_record[] = "INSERT INTO person(usercode, username, address, birthday, height,
  ('P002', 'Bruce', '台中', '2020-08-12', '180','85', 'OK'); ";
 
 
-// 指定匯入匯出的預設檔名
-$file_csv = 'output.csv';
-$file_temp = '__temp__.csv';
-
-
 // 指定匯入匯出的資料表及對應欄位名稱
 $is_title = true;  // 是否第一列要包含欄位名稱
 $table_import = 'person';
@@ -58,9 +52,10 @@ $a_mapping = array(
 'weight',
 'remark' );
 
-// 指定匯出的 SQL
-$is_title_sql = true;  // 是否第一列要包含欄位名稱
-$sql_export = 'SELECT * FROM person';
+
+// 指定匯入匯出的預設檔名
+$file_csv = 'output.csv';
+$file_temp = '__temp__.csv';
 
 
 // ************ 以下為此程式之功能執行，毋需修改 ************
@@ -122,32 +117,18 @@ function build_fields_table($sth) {
 
 
 function build_fields_title($sth) {
-    $ret = '';
-
     // 以各欄位名稱當表格標題
     $fields = array(); 
     for ($i=0; $i<$sth->columnCount(); $i++) {
         $col = $sth->getColumnMeta($i);
         $fields[] = $col['name'];
     }
-
-    $ret .= '<table border="1" cellpadding="2" cellspaceing="0">';
-    $ret .= '<tr>';
+    $ret = '';
     foreach ($fields as $val) {
-        $ret .= '<th>' . $val . '</th>';
+        $ret .= $val . ',';
     }
-    $ret .= '</tr>';
-
-    // 列出各筆記錄資料
-    while($row=$sth->fetch(PDO::FETCH_ASSOC)) {
-        $ret .= '<tr>';
-        foreach($row as $one) {
-            $ret .= '<td>' . $one . '</td>';
-        }
-        $ret .= '</tr>';
-    }
-    $ret .= '</table>';
-
+    $ret = rtrim($ret, ',');  // 移除最後一個逗號
+    $ret .= "\r\n";  // 換列
     return $ret;
 }
 
@@ -158,6 +139,11 @@ $do = $_GET['do'] ?? '';
 // 接收傳入變數 (供 SQL_INPUT 及 SQL_QUERY 使用)
 $sql = $_POST['sql'] ?? '';
 $sql = stripslashes($sql);  // 去除表單傳遞時產生的脫逸符號
+
+$sql_save = $_POST['sql_save'] ?? '';
+$fields_title = $_POST['fields_title'] ?? '';
+$is_sql_save = ($sql_save=='Y') ? true : false;
+$is_fields_title = ($fields_title=='Y') ? true : false;
 
 $msg = '';
 
@@ -271,6 +257,9 @@ switch($do) {
         <form name="form1" method="post" action="?do=SQL_QUERY">
         <textarea name="sql" rows="4" cols="80">{$sql}</textarea><br />
         <input type="submit" value="送出查詢">
+        是否輸出到檔案 <input type="checkbox" name="sql_save" value="Y"> |
+        含表頭 <input type="checkbox" name="fields_title" value="Y"> 
+        
         </form>
         <hr />
 HEREDOC;
@@ -304,6 +293,36 @@ HEREDOC;
                 $msg .= build_fields_table($sth);
             }
         }
+        
+        // 依 SQL 匯出
+        if($is_sql_save) {
+            header('Content-Type: text/csv; charset=utf-8');  
+            header('Content-Disposition: attachment; filename=' . $file_csv);
+            $output = fopen("php://output", "w"); 
+            // 連接資料庫
+            $pdo = db_open();
+            $sqlstr = $sql;
+            $sth = $pdo->prepare($sqlstr);
+            if($sth->execute()) {    
+                // 匯出欄位名稱
+                if($is_fields_title) {
+                    echo build_fields_title($sth);
+                }
+                
+                // 匯出各筆資料
+                $total_rec = $sth->rowCount();
+                $data = '';
+                while($row = $sth->fetch(PDO::FETCH_ASSOC)) {
+                    // unset($row['uid']);  // remove uid field
+                    fputcsv($output, $row);
+                }
+            }
+            else {
+                die('Error!');
+            }
+            fclose($output);
+            die();
+        }
         break;
         
         
@@ -323,40 +342,10 @@ HEREDOC;
         $msg .= '</div>';
         $msg .= '</td></tr></table>';
         break;
-    
-
-        
-    case 'EXPORT_SQL' :
-        // 依 SQL 匯出
-        // 開始匯出
-        header('Content-Type: text/csv; charset=utf-8');  
-        header('Content-Disposition: attachment; filename=' . $file_csv);
-        $output = fopen("php://output", "w"); 
-        if($is_title_sql) {
-            // fputcsv($output, $ary);  // 匯出欄位名稱
-        }
-        // 連接資料庫
-        $pdo = db_open();
-        $sqlstr = $sql_export;
-        $sth = $pdo->prepare($sqlstr);
-        if($sth->execute()) {
-            $total_rec = $sth->rowCount();
-            $data = '';
-            while($row = $sth->fetch(PDO::FETCH_ASSOC)) {
-                unset($row['uid']);  // remove uid field
-                fputcsv($output, $row);
-            }
-        }
-        else {
-            die('Error!');
-        }
-        fclose($output);
-        die();
-        break;
-    
 
 
-    case 'EXPORT_TBL' :
+
+    case 'EXPORT' :
         // 資料表及匯入的各個欄位
         $ary = array();
         foreach($a_mapping as $k=>$value) {
@@ -471,8 +460,7 @@ $menu .= '| --- ';
 $menu .= (!isset($a_valid['CREATE_TABLE']) || !$a_valid['CREATE_TABLE']) ? '' : '| <a href="?do=CREATE_TABLE">建立資料表</a> ';
 $menu .= (!isset($a_valid['DROP_TABLE']) || !$a_valid['DROP_TABLE']) ? '' : '| <a href="?do=DROP_TABLE" onClick="return confirm(\'確定要刪除嗎？\');">刪除資料表</a> ';
 $menu .= '| --- ';
-$menu .= (!isset($a_valid['EXPORT_SQL']) || !$a_valid['EXPORT_SQL']) ? '' : '| <a href="?do=EXPORT_SQL">匯出(SQL)</a> ';
-$menu .= (!isset($a_valid['EXPORT_TBL']) || !$a_valid['EXPORT_TBL']) ? '' : '| <a href="?do=EXPORT_TBL">匯出(資料表)</a> ';
+$menu .= (!isset($a_valid['EXPORT']) || !$a_valid['EXPORT']) ? '' : '| <a href="?do=EXPORT">匯出</a> ';
 $menu .= (!isset($a_valid['IMPORT']) || !$a_valid['IMPORT']) ? '' : '| <a href="?do=IMPORT">匯入</a> ';
 $menu .= '| --- ';
 $menu .= (!isset($a_valid['ADD_DATA']) || !$a_valid['ADD_DATA']) ? '' : '| <a href="?do=ADD_DATA">新增預設記錄</a> ';
