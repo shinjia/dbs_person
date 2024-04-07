@@ -1,5 +1,6 @@
 <?php
 include '../common/config.php';
+include '../common/function.chinese_name.php';  // add_many 用
 
 // 設定此程式可執行之功能 (將不允許執行的功能設為 false，或是加上註解)
 $a_valid['HOME']            = true;  // 首頁
@@ -8,6 +9,7 @@ $a_valid['CREATE_TABLE']    = true;  // 新增資料表
 $a_valid['DROP_TABLE']      = true;  // 刪除資料表
 $a_valid['VIEW_DEFINE']     = true;  // 查看定義
 $a_valid['ADD_DATA']        = true;  // 新增預設資料
+$a_valid['ADD_MANY']        = true;  // 新增多筆
 $a_valid['LIST_DATA']       = true;  // 列出資料
 $a_valid['EXPORT']          = true;  // 匯出 (單一資料表)
 $a_valid['IMPORT_INPUT']    = true;  // 資料匯入 (IMPORT Step1: input 上傳選檔)
@@ -149,6 +151,72 @@ function do_add_data($a_record) {
             $_msg .= '<p>新增成功 (最後 uid=' . $new_uid .  ')</p>';
         }
     }
+    return $_msg;
+}
+
+
+function do_add_many($add_count) {
+    $a_addr = array('基隆', '台北', '新北', '桃園', '新竹','台中', '彰化', '雲林', '嘉義', '台南', '高雄', '屏東', '台東', '花蓮', '宜蘭', '南投');
+
+    if($add_count==0) {
+        $_msg = <<< HEREDOC
+        <h2>新增記錄</h2>
+        <div class="center">
+        <form method="post" action="?do=ADD_MANY" style="margin:0px;">
+            一次新增 <input type="text" name="add_count" size="2" value="100"> 筆記錄
+            <input type="submit" value="執行">
+        </form>
+        </div>
+        HEREDOC;
+    }
+    else {
+        $pdo = db_open();
+        $record_all = '';  // 全部記錄串成的字串
+        for($i=1; $i<=$add_count; $i++) {
+            // 定義每個資料的範圍及規則
+            $usercode = uniqid();
+            $username = chinese_name();
+            $address  = $a_addr[array_rand($a_addr)];
+            $birthday = @date('Y-m-d', @strtotime('-'.mt_rand(0,650*60).' day'));  // 前六十年內的任一天
+            $height   = mt_rand(150, 190);
+            $weight   = mt_rand(45, 95);
+            $remark   = CHR(mt_rand(65, 90));
+
+            // 寫出 SQL 語法
+            $record_all .= "(";
+            $record_all .= "'$usercode',";
+            $record_all .= "'$username',";
+            $record_all .= "'$address',";
+            $record_all .= "'$birthday',";
+            $record_all .= "'$height',";
+            $record_all .= "'$weight',";
+            $record_all .= "'$remark'),";  // 注意：最後一個欄位之後的符號
+        }
+
+        $record_all = rtrim($record_all, ',');  // 移除最後一個逗號
+
+        // SQL 語法
+        $sqlstr = "INSERT INTO person(usercode, username, address, birthday, height, weight, remark) VALUES ";
+        $sqlstr .= $record_all;
+
+        $sth = $pdo->prepare($sqlstr);
+        $timer1 = microtime(true);
+        // 執行SQL
+        try {
+            $sth = $pdo->query($sqlstr);        
+            $total_rec = $sth->rowCount();
+
+            $timer2 = microtime(true);
+            $time_diff = $timer2 - $timer1;
+
+            $_msg = '<p class="center">新增成功 ' . $add_count . ' 記錄</p>';
+            $_msg .= '<p class="center">執行耗費時間：' . $time_diff . ' (秒)</p>';
+        }
+        catch(PDOException $e) {
+            $_msg = $e->getMessage();
+        }
+    }
+
     return $_msg;
 }
 
@@ -458,6 +526,9 @@ $fields_title = $_POST['fields_title'] ?? '';
 $is_sql_save = ($sql_save=='Y') ? true : false;
 $is_fields_title = ($fields_title=='Y') ? true : false;
 
+// add many 用
+$add_count = $_POST['add_count'] ?? 0;
+
 $msg = '';
 
 // 檢查功能是否允許
@@ -469,7 +540,11 @@ switch($do) {
     case 'ADD_DATA' :
         $msg = do_add_data($a_record);
         break;
-        
+
+    case 'ADD_MANY' :
+        $msg = do_add_many($add_count);
+        break;
+
     case 'LIST_DATA' :
         $msg = do_list_data($a_table);
         break;
@@ -526,7 +601,8 @@ $menu .= (!isset($a_valid['EXPORT']) || !$a_valid['EXPORT']) ? '' : '| <a href="
 $menu .= (!isset($a_valid['IMPORT_INPUT']) || !$a_valid['IMPORT_INPUT']) ? '' : '| <a href="?do=IMPORT_INPUT">匯入</a> ';
 $menu .= '| --- ';
 $menu .= (!isset($a_valid['ADD_DATA']) || !$a_valid['ADD_DATA']) ? '' : '| <a href="?do=ADD_DATA">新增預設記錄</a> ';
-$menu .= (!isset($a_valid['LIST_DATA']) || !$a_valid['LIST_DATA']) ? '' : '| <a href="?do=LIST_DATA">查看記錄內容</a> ';
+$menu .= (!isset($a_valid['ADD_MANY']) || !$a_valid['ADD_MANY']) ? '' : '| <a href="?do=ADD_MANY">隨機新增多筆</a> ';
+$menu .= (!isset($a_valid['LIST_DATA']) || !$a_valid['LIST_DATA']) ? '' : '| <a href="?do=LIST_DATA">查看記錄</a> ';
 $menu .= '| --- ';
 $menu .= (!isset($a_valid['SQL_QUERY']) || !$a_valid['SQL_QUERY']) ? '' : '| <a href="?do=SQL_QUERY">SQL測試</a> ';
 $menu .= '|';
