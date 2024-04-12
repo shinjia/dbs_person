@@ -2,20 +2,21 @@
 include '../common/config.php';
 include '../common/function.chinese_name.php';  // add_many 用
 
-// 設定此程式可執行之功能 (將不允許執行的功能設為 false，或是加上註解)
-$a_valid['HOME']            = true;  // 首頁
-// $a_valid['CREATE_DATABASE'] = false;  // 新增資料庫
-$a_valid['CREATE_TABLE']    = true;  // 新增資料表
-$a_valid['DROP_TABLE']      = true;  // 刪除資料表
-$a_valid['VIEW_DEFINE']     = true;  // 查看定義
-$a_valid['ADD_DATA']        = true;  // 新增預設資料
-$a_valid['ADD_MANY']        = true;  // 新增多筆
-$a_valid['LIST_DATA']       = true;  // 列出資料
-$a_valid['EXPORT']          = true;  // 匯出 (單一資料表)
-$a_valid['IMPORT_INPUT']    = true;  // 資料匯入 (IMPORT Step1: input 上傳選檔)
-$a_valid['IMPORT_SAVE']     = true;  // 資料匯入 (IMPORT Step2: save 上傳儲存)
-$a_valid['IMPORT_EXEC']     = true;  // 資料匯入 (IMPORT Step3: exec 執行)
-$a_valid['SQL_QUERY']       = true;  // 執行自定SQL
+// 設定此程式可執行之功能
+// 將不允許執行的功能加上註解 (定義的值無意義)
+define('HOME'        ,1); // 首頁
+// define('CREATE_DB'   ,1); // 新增資料庫
+define('CREATE_TABLE',1); // 新增資料表
+define('DROP_TABLE'  ,1); // 刪除資料表
+define('VIEW_DEFINE' ,1); // 查看定義
+define('ADD_DATA'    ,1); // 新增預設資料
+define('ADD_MANY'    ,1); // 新增多筆
+define('LIST_DATA'   ,1); // 列出資料
+define('EXPORT'      ,1); // 匯出 (單一資料表)
+define('IMPORT_INPUT',1); // 資料匯入 (IMPORT Step1: input 上傳選檔)
+define('IMPORT_SAVE' ,1); // 資料匯入 (IMPORT Step2: save 上傳儲存)
+define('IMPORT_EXEC' ,1); // 資料匯入 (IMPORT Step3: exec 執行)
+define('SQL_QUERY'   ,1); // 執行自定SQL
 
 
 // ************ 以下為資料定義，依自行需要進行修改 ************
@@ -24,13 +25,13 @@ $a_valid['SQL_QUERY']       = true;  // 執行自定SQL
 $a_table['person'] = '
 CREATE TABLE person (
     uid int NOT NULL auto_increment,
-    usercode varchar(255) NULL,
-    username varchar(255) NULL,
-    address  varchar(255) NULL,
-    birthday date default NULL,
-    height   int default NULL,
-    weight   int default NULL,
-    remark   varchar(255) NULL,
+    usercode VARCHAR(255) NULL,
+    username VARCHAR(255) NULL,
+    address  VARCHAR(255) NULL,
+    birthday DATE default NULL,
+    height   INT default NULL,
+    weight   INT default NULL,
+    remark   VARCHAR(255) NULL,
     PRIMARY KEY  (uid)
 )
 ';
@@ -532,7 +533,7 @@ $add_count = $_POST['add_count'] ?? 0;
 $msg = '';
 
 // 檢查功能是否允許
-if(!isset($a_valid[$do]) || !$a_valid[$do]) {
+if(!defined($do)) {
     $msg .= '******無法執行此功能！******';
 }
 else {
@@ -590,23 +591,22 @@ switch($do) {
 // 顯示功能表列
 $menu  = '';
 $menu .= '| <a href="?do=HOME">安裝首頁</a> ';
-$menu .= (!isset($a_valid['VIEW_DEFINE']) || !$a_valid['VIEW_DEFINE']) ? '' : '| <a href="?do=VIEW_DEFINE">程式內SQL定義</a> ';
+$menu .= !defined('VIEW_DEFINE') ? '' : '| <a href="?do=VIEW_DEFINE">程式內SQL定義</a> ';
 $menu .= '| --- ';
-$menu .= (!isset($a_valid['CREATE_DATABASE']) || !$a_valid['CREATE_DATABASE']) ? '' : '| <a href="?do=CREATE_DATABASE">建立資料庫</a> ';
+$menu .= !defined('CREATE_DATABASE') ? '' : '| <a href="?do=CREATE_DATABASE">建立資料庫</a> ';
 $menu .= '| --- ';
-$menu .= (!isset($a_valid['CREATE_TABLE']) || !$a_valid['CREATE_TABLE']) ? '' : '| <a href="?do=CREATE_TABLE">建立資料表</a> ';
-$menu .= (!isset($a_valid['DROP_TABLE']) || !$a_valid['DROP_TABLE']) ? '' : '| <a href="?do=DROP_TABLE" onClick="return confirm(\'確定要刪除嗎？\');">刪除資料表</a> ';
+$menu .= !defined('CREATE_TABLE') ? '' : '| <a href="?do=CREATE_TABLE">建立資料表</a> ';
+$menu .= !defined('DROP_TABLE') ? '' : '| <a href="?do=DROP_TABLE" onClick="return confirm(\'確定要刪除嗎？\');">刪除資料表</a> ';
 $menu .= '| --- ';
-$menu .= (!isset($a_valid['EXPORT']) || !$a_valid['EXPORT']) ? '' : '| <a href="?do=EXPORT">匯出</a> ';
-$menu .= (!isset($a_valid['IMPORT_INPUT']) || !$a_valid['IMPORT_INPUT']) ? '' : '| <a href="?do=IMPORT_INPUT">匯入</a> ';
+$menu .= !defined('EXPORT') ? '' : '| <a href="?do=EXPORT">匯出</a> ';
+$menu .= !defined('IMPORT_INPUT') ? '' : '| <a href="?do=IMPORT_INPUT">匯入</a> ';
 $menu .= '| --- ';
-$menu .= (!isset($a_valid['ADD_DATA']) || !$a_valid['ADD_DATA']) ? '' : '| <a href="?do=ADD_DATA">新增預設記錄</a> ';
-$menu .= (!isset($a_valid['ADD_MANY']) || !$a_valid['ADD_MANY']) ? '' : '| <a href="?do=ADD_MANY">隨機新增多筆</a> ';
-$menu .= (!isset($a_valid['LIST_DATA']) || !$a_valid['LIST_DATA']) ? '' : '| <a href="?do=LIST_DATA">查看記錄</a> ';
+$menu .= !defined('ADD_DATA') ? '' : '| <a href="?do=ADD_DATA">新增預設記錄</a> ';
+$menu .= !defined('ADD_MANY') ? '' : '| <a href="?do=ADD_MANY">隨機新增多筆</a> ';
+$menu .= !defined('LIST_DATA') ? '' : '| <a href="?do=LIST_DATA">查看記錄</a> ';
 $menu .= '| --- ';
-$menu .= (!isset($a_valid['SQL_QUERY']) || !$a_valid['SQL_QUERY']) ? '' : '| <a href="?do=SQL_QUERY">SQL測試</a> ';
+$menu .= !defined('SQL_QUERY') ? '' : '| <a href="?do=SQL_QUERY">SQL測試</a> ';
 $menu .= '|';
-
 
 
 $html = <<< HEREDOC
